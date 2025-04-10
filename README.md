@@ -10,6 +10,20 @@ Este projeto realiza uma análise completa de dados de e-commerce, incluindo an�
 - Desenvolver modelos preditivos de demanda
 - Criar visualizações interativas dos insights
 
+## 📊 Resultados Recentes
+
+### Distribuição de Eventos
+- Views: 96.11% (23,917,519 eventos)
+- Cart: 2.12% (526,431 eventos)
+- Purchase: 1.77% (441,703 eventos)
+
+### Top Categorias por Receita
+1. electronics.smartphone
+2. computers.notebook
+3. electronics.video.tv
+4. electronics.clocks
+5. appliances.kitchen.washer
+
 ## 📋 Estrutura do Projeto
 
 ```
@@ -65,7 +79,7 @@ pip install -r requirements.txt
 
 2. Execute a análise completa:
 ```bash
-python src/main.py
+python src/main.py [caminho_do_arquivo]  # Opcional: especifique o arquivo CSV
 ```
 
 3. Para análise interativa, inicie o Jupyter Notebook:
@@ -77,21 +91,34 @@ jupyter notebook notebooks/
 
 ### Análise Exploratória
 - Distribuição de eventos (visualização, carrinho, compra)
-- Performance por categoria
+- Performance por categoria e marca
 - Padrões temporais de compras
 - Análise de usuários e produtos
+- Cache inteligente de dados para melhor performance
 
 ### Previsão de Demanda
 - Modelo Random Forest para previsão de vendas
 - Modelo Prophet para análise de tendências
 - Avaliação de importância de features
 - Métricas de performance dos modelos
+- Processamento otimizado de grandes volumes de dados
 
 ## 📈 Outputs
 
 - Visualizações salvas em `output/plots/`
+  - Distribuição de eventos
+  - Performance por categoria
+  - Padrões temporais
 - Modelos treinados em `output/models/`
 - Relatórios de análise em `notebooks/`
+
+## 🔄 Últimas Melhorias
+
+- Implementação de cache de chunks em memória
+- Otimização do processamento de grandes datasets
+- Melhor tratamento de erros e logging
+- Visualizações mais informativas
+- Suporte a argumentos de linha de comando
 
 ## 🤝 Contribuindo
 
