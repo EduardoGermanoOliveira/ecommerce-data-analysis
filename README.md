@@ -134,7 +134,7 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 
 ## 👥 Autores
 
-- Seu Nome - [@seu-usuario](https://github.com/seu-usuario)
+- Eduardo Germano de Oliveira - [@EduardoGermanoOliveira](https://github.com/EduardoGermanoOliveira)
 
 ## 🙏 Agradecimentos
 
