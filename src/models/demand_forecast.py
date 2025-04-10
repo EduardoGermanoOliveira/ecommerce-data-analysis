@@ -22,14 +22,30 @@ class DemandForecaster:
         """
         self.df_chunks = df_chunks
         self.models = {}
+        self._cache = {}
+        self._chunks = []  # Store chunks in memory
+        
+    def _load_chunks(self):
+        """Load all chunks into memory if not already loaded."""
+        if not self._chunks:
+            logger.info("Loading chunks into memory...")
+            for chunk in self.df_chunks:
+                try:
+                    if chunk is not None and not chunk.empty:
+                        self._chunks.append(chunk)
+                except Exception as e:
+                    logger.warning(f"Error loading chunk: {str(e)}")
+                    continue
+            logger.info(f"Loaded {len(self._chunks)} chunks into memory")
         
     def _process_chunks(self, func):
         """Process all chunks and combine results."""
+        self._load_chunks()  # Ensure chunks are loaded
         results = []
-        for chunk in self.df_chunks:
+        
+        for chunk in self._chunks:
             try:
-                # Reset the index to ensure proper concatenation
-                chunk = chunk.reset_index(drop=True)
+                # Process the chunk with the provided function
                 result = func(chunk)
                 if result is not None and not result.empty:
                     results.append(result)
@@ -58,6 +74,32 @@ class DemandForecaster:
         except Exception as e:
             logger.error(f"Error combining results: {str(e)}")
             return pd.DataFrame()
+    
+    def _get_full_dataframe(self):
+        """
+        Process all chunks and return a complete DataFrame.
+        This is useful for analyses that need the complete dataset.
+        
+        Returns:
+            Complete DataFrame with all data
+        """
+        if 'full_df' in self._cache:
+            return self._cache['full_df']
+            
+        self._load_chunks()  # Ensure chunks are loaded
+        
+        if not self._chunks:
+            logger.warning("No valid chunks found")
+            return pd.DataFrame()
+            
+        try:
+            full_df = pd.concat(self._chunks, ignore_index=True)
+            self._cache['full_df'] = full_df
+            logger.info(f"Complete DataFrame created with shape {full_df.shape}")
+            return full_df
+        except Exception as e:
+            logger.error(f"Error creating complete DataFrame: {str(e)}")
+            return pd.DataFrame()
         
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.Series]:
         """
@@ -66,6 +108,53 @@ class DemandForecaster:
         Returns:
             Tuple of (features DataFrame, target Series)
         """
+        # Try using the full DataFrame for this analysis
+        full_df = self._get_full_dataframe()
+        if not full_df.empty:
+            try:
+                # Convert event_time to datetime
+                full_df['event_time'] = pd.to_datetime(full_df['event_time'])
+                full_df['date'] = full_df['event_time'].dt.date
+                
+                # Calculate daily metrics
+                daily_metrics = full_df.groupby('date').agg({
+                    'event_type': lambda x: x.value_counts().to_dict(),
+                    'price': ['sum', 'mean', 'count'],
+                    'user_id': 'nunique',
+                    'product_id': 'nunique'
+                })
+                
+                # Flatten column names
+                daily_metrics.columns = ['event_counts', 'total_revenue', 'avg_price', 
+                                       'total_events', 'unique_users', 'unique_products']
+                
+                # Extract event counts into separate columns
+                event_counts = daily_metrics['event_counts'].apply(pd.Series)
+                event_counts = event_counts.fillna(0)
+                
+                # Create feature matrix
+                X = pd.concat([
+                    event_counts,
+                    daily_metrics[['total_revenue', 'avg_price', 'total_events', 
+                               'unique_users', 'unique_products']]
+                ], axis=1)
+                
+                # Target variable: next day's total revenue
+                y = daily_metrics['total_revenue'].shift(-1)
+                
+                # Remove last row (no target value)
+                X = X[:-1]
+                y = y[:-1]
+                
+                # Add time-based features
+                X['day_of_week'] = pd.to_datetime(daily_metrics.index).dayofweek[:-1]
+                X['day_of_month'] = pd.to_datetime(daily_metrics.index).day[:-1]
+                
+                return X, y
+            except Exception as e:
+                logger.warning(f"Error preparing data with full DataFrame: {str(e)}")
+        
+        # Fall back to chunk processing if full DataFrame approach fails
         def process_chunk(chunk):
             try:
                 # Convert event_time to datetime
@@ -161,6 +250,12 @@ class DemandForecaster:
                 'r2': r2_score(y_test, y_pred)
             }
             
+            # Store model and feature importance
+            self.models['random_forest'] = {
+                'model': self.rf_model,
+                'feature_importance': dict(zip(X.columns, self.rf_model.feature_importances_))
+            }
+            
             return {'metrics': metrics}
         except Exception as e:
             logger.error(f"Error training Random Forest model: {str(e)}")
@@ -178,6 +273,40 @@ class DemandForecaster:
         Returns:
             Dictionary with model and forecast
         """
+        # Try using the full DataFrame for this analysis
+        full_df = self._get_full_dataframe()
+        if not full_df.empty:
+            try:
+                full_df['event_time'] = pd.to_datetime(full_df['event_time'])
+                daily_data = full_df[full_df['event_type'] == 'purchase'].groupby(
+                    full_df['event_time'].dt.date
+                )[target_col].sum()
+                
+                # Prepare data for Prophet
+                prophet_data = daily_data.reset_index()
+                prophet_data.columns = ['ds', 'y']
+                
+                model = Prophet(
+                    yearly_seasonality=True,
+                    weekly_seasonality=True,
+                    daily_seasonality=True
+                )
+                
+                model.fit(prophet_data)
+                
+                future = model.make_future_dataframe(periods=forecast_periods)
+                forecast = model.predict(future)
+                
+                self.models['prophet'] = {
+                    'model': model,
+                    'forecast': forecast
+                }
+                
+                return self.models['prophet']
+            except Exception as e:
+                logger.warning(f"Error training Prophet model with full DataFrame: {str(e)}")
+        
+        # Fall back to chunk processing if full DataFrame approach fails
         def process_chunk(chunk):
             chunk['event_time'] = pd.to_datetime(chunk['event_time'])
             return chunk[chunk['event_type'] == 'purchase'].groupby(

@@ -19,6 +19,33 @@ class EcommerceDataLoader:
         """
         self.data_path = Path(data_path)
         
+    def _process_chunks(self, chunk_iter) -> pd.DataFrame:
+        """
+        Processa iterador de chunks e retorna DataFrame consolidado.
+
+        Args:
+            chunk_iter: Iterator de DataFrames
+
+        Returns:
+            DataFrame combinado e pré-processado
+        """
+        logger.info("Processando chunks...")
+        results = []
+        
+        for i, chunk in enumerate(chunk_iter):
+            if chunk is not None and not chunk.empty:
+                logger.info(f"Processando chunk {i+1} com shape {chunk.shape}")
+                chunk = self.preprocess_data(chunk)
+                results.append(chunk)
+            else:
+                logger.warning(f"Chunk {i+1} vazio ou inválido. Ignorado.")
+
+        if not results:
+            logger.warning("Nenhum chunk processado com sucesso!")
+            return pd.DataFrame()  # Retorna DataFrame vazio para evitar erro
+
+        return pd.concat(results, ignore_index=True)
+        
     def load_data(self, chunksize: Optional[int] = None) -> Union[pd.DataFrame, pd.io.parsers.TextFileReader]:
         """
         Load the e-commerce data, optionally in chunks for large files.
@@ -27,7 +54,7 @@ class EcommerceDataLoader:
             chunksize: Number of rows to read at a time. If None, reads entire file.
             
         Returns:
-            DataFrame or TextFileReader object
+            DataFrame with preprocessed data or TextFileReader for chunked reading
         """
         try:
             if chunksize:
@@ -39,10 +66,11 @@ class EcommerceDataLoader:
                 )
             else:
                 logger.info("Loading entire dataset...")
-                return pd.read_csv(
+                df = pd.read_csv(
                     self.data_path,
                     parse_dates=['event_time']
                 )
+                return self.preprocess_data(df)
         except Exception as e:
             logger.error(f"Error loading data: {str(e)}")
             raise

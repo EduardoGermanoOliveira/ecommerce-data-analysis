@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+import sys
 from pathlib import Path
 from data.data_loader import EcommerceDataLoader
 from analysis.exploratory import EcommerceAnalyzer
@@ -22,14 +23,18 @@ def main():
     (output_dir / 'models').mkdir(exist_ok=True)
     
     try:
+        # Get CSV file path from command line argument or use default
+        csv_file = sys.argv[1] if len(sys.argv) > 1 else 'data/raw/2019-Oct.csv'
+        logger.info(f"Using data file: {csv_file}")
+        
         # Load and preprocess data
         logger.info("Loading data...")
-        data_loader = EcommerceDataLoader('data/raw/ecommerce_data.csv')
-        df = data_loader.load_data(chunksize=100000)  # Load in chunks due to large file size
+        data_loader = EcommerceDataLoader(csv_file)
+        df_chunks = data_loader.load_data(chunksize=100000)  # Load in chunks due to large file size
         
         # Initialize analyzer
         logger.info("Starting exploratory analysis...")
-        analyzer = EcommerceAnalyzer(df)
+        analyzer = EcommerceAnalyzer(df_chunks)
         
         # Perform exploratory analysis
         event_dist = analyzer.analyze_event_distribution()
@@ -48,28 +53,40 @@ def main():
         
         # Prepare data for forecasting
         logger.info("Preparing data for demand forecasting...")
-        forecaster = DemandForecaster(df)
+        forecaster = DemandForecaster(df_chunks)
         X, y = forecaster.prepare_data()
         
-        # Train Random Forest model
-        logger.info("Training Random Forest model...")
-        rf_results = forecaster.train_random_forest(X, y)
-        logger.info("Random Forest Metrics: %s", rf_results['metrics'])
+        # Train Random Forest model if we have enough data
+        if not X.empty and not y.empty:
+            logger.info("Training Random Forest model...")
+            rf_results = forecaster.train_random_forest(X, y)
+            logger.info("Random Forest Metrics: %s", rf_results['metrics'])
+            
+            # Get feature importance
+            try:
+                feature_importance = forecaster.get_feature_importance()
+                logger.info("\nFeature Importance:\n%s", feature_importance)
+                
+                # Save results
+                feature_importance.to_csv(
+                    output_dir / 'models' / 'feature_importance.csv',
+                    index=False
+                )
+            except ValueError as e:
+                logger.warning(f"Could not get feature importance: {str(e)}")
+        else:
+            logger.warning("Not enough data to train Random Forest model")
         
-        # Get feature importance
-        feature_importance = forecaster.get_feature_importance()
-        logger.info("\nFeature Importance:\n%s", feature_importance)
-        
-        # Train Prophet model
-        logger.info("Training Prophet model...")
-        prophet_results = forecaster.train_prophet(forecast_periods=30)
-        logger.info("Prophet forecast completed")
-        
-        # Save results
-        feature_importance.to_csv(
-            output_dir / 'models' / 'feature_importance.csv',
-            index=False
-        )
+        # Train Prophet model if we have enough data
+        if not X.empty and not y.empty:
+            logger.info("Training Prophet model...")
+            try:
+                prophet_results = forecaster.train_prophet(forecast_periods=30)
+                logger.info("Prophet forecast completed")
+            except Exception as e:
+                logger.warning(f"Error training Prophet model: {str(e)}")
+        else:
+            logger.warning("Not enough data to train Prophet model")
         
         logger.info("Analysis completed successfully!")
         
