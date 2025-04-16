@@ -22,7 +22,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Problemas com processamento de chunks
 - Erros de visualização de dados
 
-## [0.1.0] - 2024-04-16
+## [0.1.0] - 2024-04-09
 
 ### Adicionado
 - Implementação inicial do projeto com estrutura básica
