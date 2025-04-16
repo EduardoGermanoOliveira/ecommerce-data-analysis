@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from data.data_loader import EcommerceDataLoader
 from analysis.exploratory import EcommerceAnalyzer
-from models.demand_forecast import DemandForecaster
+import matplotlib.pyplot as plt
 
 # Configure logging
 logging.basicConfig(
@@ -20,7 +20,6 @@ def main():
     output_dir = Path('output')
     output_dir.mkdir(exist_ok=True)
     (output_dir / 'plots').mkdir(exist_ok=True)
-    (output_dir / 'models').mkdir(exist_ok=True)
     
     try:
         # Get CSV file path from command line argument or use default
@@ -44,49 +43,39 @@ def main():
         logger.info("\nTop 10 Categories by Performance:\n%s", category_perf)
         
         # Generate plots
+        logger.info("Generating visualizations...")
+        
+        # Event distribution
         analyzer.plot_event_distribution(
             save_path=output_dir / 'plots' / 'event_distribution.png'
         )
+        
+        # Category performance
         analyzer.plot_category_performance(
             save_path=output_dir / 'plots' / 'category_performance.png'
         )
         
-        # Prepare data for forecasting
-        logger.info("Preparing data for demand forecasting...")
-        forecaster = DemandForecaster(df_chunks)
-        X, y = forecaster.prepare_data()
-        
-        # Train Random Forest model if we have enough data
-        if not X.empty and not y.empty:
-            logger.info("Training Random Forest model...")
-            rf_results = forecaster.train_random_forest(X, y)
-            logger.info("Random Forest Metrics: %s", rf_results['metrics'])
+        # Time patterns
+        hourly_patterns, daily_patterns = analyzer.analyze_time_patterns()
+        if not hourly_patterns.empty:
+            plt.figure(figsize=(12, 6))
+            hourly_patterns.plot(kind='bar')
+            plt.title('Event Distribution by Hour of Day')
+            plt.xlabel('Hour')
+            plt.ylabel('Number of Events')
+            plt.tight_layout()
+            plt.savefig(output_dir / 'plots' / 'hourly_patterns.png')
+            plt.close()
             
-            # Get feature importance
-            try:
-                feature_importance = forecaster.get_feature_importance()
-                logger.info("\nFeature Importance:\n%s", feature_importance)
-                
-                # Save results
-                feature_importance.to_csv(
-                    output_dir / 'models' / 'feature_importance.csv',
-                    index=False
-                )
-            except ValueError as e:
-                logger.warning(f"Could not get feature importance: {str(e)}")
-        else:
-            logger.warning("Not enough data to train Random Forest model")
-        
-        # Train Prophet model if we have enough data
-        if not X.empty and not y.empty:
-            logger.info("Training Prophet model...")
-            try:
-                prophet_results = forecaster.train_prophet(forecast_periods=30)
-                logger.info("Prophet forecast completed")
-            except Exception as e:
-                logger.warning(f"Error training Prophet model: {str(e)}")
-        else:
-            logger.warning("Not enough data to train Prophet model")
+        if not daily_patterns.empty:
+            plt.figure(figsize=(12, 6))
+            daily_patterns.plot(kind='bar')
+            plt.title('Event Distribution by Day of Week')
+            plt.xlabel('Day of Week')
+            plt.ylabel('Number of Events')
+            plt.tight_layout()
+            plt.savefig(output_dir / 'plots' / 'daily_patterns.png')
+            plt.close()
         
         logger.info("Analysis completed successfully!")
         
