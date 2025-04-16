@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.1.1] - 2024-03-XX
+
+### Adicionado
+- Novos gráficos de análise temporal:
+  - Distribuição de eventos por hora do dia
+  - Distribuição de eventos por dia da semana
+- Melhorias na visualização de dados
+
+### Melhorado
+- Simplificação do código principal (main.py)
+- Remoção de funcionalidades que geravam erros
+- Otimização do processamento de dados
+
+### Corrigido
+- Problemas com processamento de chunks
+- Erros de visualização de dados
+
 ## [0.1.0] - 2024-03-XX
 
 ### Adicionado

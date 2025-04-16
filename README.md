@@ -24,6 +24,11 @@ Este projeto realiza uma análise completa de dados de e-commerce, incluindo an�
 4. electronics.clocks
 5. appliances.kitchen.washer
 
+### Padrões Temporais
+- Análise por hora do dia
+- Análise por dia da semana
+- Identificação de picos de atividade
+
 ## 📋 Estrutura do Projeto
 
 ```
@@ -93,15 +98,17 @@ jupyter notebook notebooks/
 - Distribuição de eventos (visualização, carrinho, compra)
 - Performance por categoria e marca
 - Padrões temporais de compras
+  - Distribuição por hora do dia
+  - Distribuição por dia da semana
 - Análise de usuários e produtos
 - Cache inteligente de dados para melhor performance
 
-### Previsão de Demanda
-- Modelo Random Forest para previsão de vendas
-- Modelo Prophet para análise de tendências
-- Avaliação de importância de features
-- Métricas de performance dos modelos
-- Processamento otimizado de grandes volumes de dados
+### Visualizações
+- Gráficos de distribuição de eventos
+- Performance por categoria
+- Padrões temporais
+  - Gráficos por hora do dia
+  - Gráficos por dia da semana
 
 ## 📈 Outputs
 
@@ -109,6 +116,8 @@ jupyter notebook notebooks/
   - Distribuição de eventos
   - Performance por categoria
   - Padrões temporais
+    - Distribuição por hora
+    - Distribuição por dia da semana
 - Modelos treinados em `output/models/`
 - Relatórios de análise em `notebooks/`
 
@@ -119,6 +128,7 @@ jupyter notebook notebooks/
 - Melhor tratamento de erros e logging
 - Visualizações mais informativas
 - Suporte a argumentos de linha de comando
+- Novas análises temporais
 
 ## 🤝 Contribuindo
 
@@ -134,7 +144,7 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 
 ## 👥 Autores
 
-- Eduardo Germano de Oliveira - [@EduardoGermanoOliveira](https://github.com/EduardoGermanoOliveira)
+- Seu Nome - [@seu-usuario](https://github.com/seu-usuario)
 
 ## 🙏 Agradecimentos
 
